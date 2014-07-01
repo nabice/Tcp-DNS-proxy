@@ -41,6 +41,7 @@ import SocketServer
 import optparse
 import third_party
 from pylru import lrucache
+import signal
 
 DHOSTS = [
     '8.8.8.8', '8.8.4.4', '156.154.70.1', '156.154.71.1',
@@ -54,6 +55,8 @@ UDPPORT = 53
 
 TIMEOUT = 20
 LRUCACHE = None
+
+LISTENPORT = 53
 
 
 def hexdump(src, width=16):
@@ -127,7 +130,11 @@ def QueryDNS(server, port, querydata):
             s.close()
         return data
 
-
+def print_cache(signum, frame):
+    tcpdns_cache_file = open("/tmp/tcpdns.cache", "w")
+    for key in LRUCACHE:
+        tcpdns_cache_file.write(bytetodomain(key.decode("hex")[10:-4]) + "\n")
+    tcpdns_cache_file.flush()
 def transfer(querydata, addr, server):
     """send udp dns respones back to client program
 
@@ -219,13 +226,13 @@ class GeventUDPServer(DatagramServer):
 
 
 def thread_main():
-    server = ThreadedUDPServer(('127.0.0.1', 53), ThreadedUDPRequestHandler)
+    server = ThreadedUDPServer(('127.0.0.1', LISTENPORT), ThreadedUDPRequestHandler)
     server.serve_forever()
     server.shutdown()
 
 
 def gevent_main():
-    GeventUDPServer('127.0.0.1:53').serve_forever()
+    GeventUDPServer('127.0.0.1:'+str(LISTENPORT)).serve_forever()
 
 
 if __name__ == "__main__":
@@ -242,6 +249,8 @@ if __name__ == "__main__":
                       default=False, help='use udp mode, default is tcp mode')
     parser.add_option("-d", "--daemon", action="store_true", dest="daemon",
                       help="use daemon process")
+    parser.add_option("-p", "--port", action="store", dest="port",
+                      help="Specifies the port on which the server listens")
     parser.add_option(
         "-g",
         action="store_true",
@@ -256,13 +265,15 @@ if __name__ == "__main__":
     if options.dns_servers:
         DHOSTS = options.dns_servers.strip(" ,").split(',')
     if options.cache:
-        LRUCACHE = lrucache(100)
+        LRUCACHE = lrucache(10000)
     if options.udp:
         UDPMODE = True
         DHOSTS = UDPHOSTS
         DPORT = UDPPORT
     if options.g_server:
         server = gevent_main
+    if options.port:
+        LISTENPORT = int(options.port)
 
     print '>> TCP DNS Proxy, https://github.com/henices/Tcp-DNS-proxy'
     print '>> DNS Servers:\n%s' % ('\n'.join(DHOSTS))
@@ -280,6 +291,7 @@ if __name__ == "__main__":
             except ImportError:
                 print '*** Please install python-daemon'
 
+    signal.signal(signal.SIGUSR1, print_cache)
     try:
         with daemon.DaemonContext(detach_process=True):
             server()
