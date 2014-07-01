@@ -135,6 +135,7 @@ def print_cache(signum, frame):
     for key in LRUCACHE:
         tcpdns_cache_file.write(bytetodomain(key.decode("hex")[10:-4]) + "\n")
     tcpdns_cache_file.flush()
+    tcpdns_cache_file.close()
 def transfer(querydata, addr, server):
     """send udp dns respones back to client program
 
