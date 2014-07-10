@@ -136,6 +136,16 @@ def print_cache(signum, frame):
         tcpdns_cache_file.write(bytetodomain(key.decode("hex")[10:-4]) + "\n")
     tcpdns_cache_file.flush()
     tcpdns_cache_file.close()
+
+def del_cache(signum, frame):
+    tcpdns_del = open("/tmp/tcpdns.del", "r")
+    domain_to_del = tcpdns_del.read()
+    tcpdns_del.close()
+
+    for key in LRUCACHE:
+        if bytetodomain(key.decode("hex")[10:-4]) == domain_to_del:
+            del LRUCACHE[key]
+
 def transfer(querydata, addr, server):
     """send udp dns respones back to client program
 
@@ -293,6 +303,8 @@ if __name__ == "__main__":
                 print '*** Please install python-daemon'
 
     signal.signal(signal.SIGUSR1, print_cache)
+    signal.signal(signal.SIGUSR2, del_cache)
+
     try:
         with daemon.DaemonContext(detach_process=True):
             server()

@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+if [ -z "$1" ]; then
+    echo "Usage: tcpdnsdel DOMAIN"
+fi
+
+echo -n $1 > /tmp/tcpdns.del
+sudo pkill -12 tcpdns
+    
+    

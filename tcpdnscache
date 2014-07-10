@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+FILE=/tmp/tcpdns.cache
+sudo rm $FILE
+sudo pkill -10 tcpdns
+while [ ! -e $FILE ] || lsof /tmp/tcpdns.cache
+do
+    sleep 1
+done
+sleep 0.1
+cat $FILE
