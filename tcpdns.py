@@ -197,7 +197,8 @@ def transfer(querydata, addr, server):
             continue
 
         if LRUCACHE is not None:
-            LRUCACHE[key] = response
+            if ord(response[5:6]) & 0xF == 0:
+                LRUCACHE[key] = response
 
         if not UDPMODE:
             # udp dns packet no length
